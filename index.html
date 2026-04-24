@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkyCast — Real-Time Weather</title>
+  <link rel="icon" href="https://openweathermap.org/img/wn/01d@2x.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       ANIMATED STAR CANVAS BACKGROUND
+  ============================================================ -->
+  <canvas id="starsCanvas"></canvas>
+
+  <!-- ============================================================
+       PAGE 1 — SEARCH / HOME
+  ============================================================ -->
+  <div id="searchPage" class="page active">
+
+    <!-- Top Navigation Bar -->
+    <nav class="nav-bar">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">🌤</div>
+        <span class="nav-logo-text">Sky<span class="accent">Cast</span></span>
+      </div>
+      <div class="nav-right">
+        <button class="nav-btn" id="themeToggleBtn" title="Toggle brightness">🌙</button>
+        <button class="nav-btn" id="navFavsBtn" title="My saved cities">⭐ Saved</button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="search-hero">
+      <div class="hero-badge">🌍 Live Weather Data</div>
+      <h1 class="hero-title">
+        Know Your Sky,<br />
+        <span class="gradient-text">Anywhere on Earth</span>
+      </h1>
+      <p class="hero-sub">
+        Real-time weather updates, 5-day forecasts, UV index, wind, humidity and more.
+        Search any city to get started instantly.
+      </p>
+
+      <!-- Main Search Bar -->
+      <div class="search-bar-container">
+        <div class="search-icon-wrap">🔍</div>
+        <input
+          type="text"
+          id="cityInput"
+          class="main-search-input"
+          placeholder="Enter city name — e.g. London, Tokyo, Lahore..."
+          autocomplete="off"
+        />
+        <button class="search-go-btn" id="searchBtn">
+          Get Weather
+        </button>
+      </div>
+
+      <!-- Location Button -->
+      <button class="location-detect-btn" id="locationBtn">
+        <span class="loc-icon">📍</span>
+        <span>Detect My Current Location Automatically</span>
+      </button>
+
+      <!-- Quick City Pills -->
+      <div class="quick-cities-section">
+        <p class="quick-label">Quick picks:</p>
+        <div class="quick-pills">
+          <button class="city-pill" onclick="quickSearch('London')">🇬🇧 London</button>
+          <button class="city-pill" onclick="quickSearch('Tokyo')">🇯🇵 Tokyo</button>
+          <button class="city-pill" onclick="quickSearch('New York')">🇺🇸 New York</button>
+          <button class="city-pill" onclick="quickSearch('Dubai')">🇦🇪 Dubai</button>
+          <button class="city-pill" onclick="quickSearch('Lahore')">🇵🇰 Lahore</button>
+          <button class="city-pill" onclick="quickSearch('Paris')">🇫🇷 Paris</button>
+          <button class="city-pill" onclick="quickSearch('Sydney')">🇦🇺 Sydney</button>
+          <button class="city-pill" onclick="quickSearch('Karachi')">🇵🇰 Karachi</button>
+          <button class="city-pill" onclick="quickSearch('Istanbul')">🇹🇷 Istanbul</button>
+          <button class="city-pill" onclick="quickSearch('Cairo')">🇪🇬 Cairo</button>
+        </div>
+      </div>
+
+      <!-- Saved Favorites Panel (hidden by default) -->
+      <div class="favs-panel hidden" id="favPanel">
+        <div class="favs-panel-header">
+          <span>⭐ Saved Cities</span>
+          <button class="close-favs-btn" id="closeFavsBtn">✕</button>
+        </div>
+        <div class="favs-list" id="favPanelList"></div>
+        <p class="favs-empty hidden" id="favsEmptyMsg">No saved cities yet. Search a city and save it!</p>
+      </div>
+    </div>
+
+    <!-- Feature Cards Row at bottom -->
+    <div class="features-row">
+      <div class="feature-card">
+        <div class="feat-icon">🌡</div>
+        <div class="feat-title">Live Temperature</div>
+        <div class="feat-desc">Real-time °C / °F data</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">📅</div>
+        <div class="feat-title">5-Day Forecast</div>
+        <div class="feat-desc">Plan your week ahead</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">☀️</div>
+        <div class="feat-title">UV Index</div>
+        <div class="feat-desc">Sun safety indicator</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">📤</div>
+        <div class="feat-title">Easy Sharing</div>
+        <div class="feat-desc">WhatsApp, Twitter & more</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 2 — LOADING
+  ============================================================ -->
+  <div id="loadingPage" class="page hidden">
+    <div class="loading-content">
+      <div class="loading-orbit">
+        <div class="orbit-ring ring1"></div>
+        <div class="orbit-ring ring2"></div>
+        <div class="orbit-center">🌤</div>
+      </div>
+      <h2 class="loading-title">Fetching Weather Data</h2>
+      <p class="loading-sub" id="loadingCityName">Please wait...</p>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar-fill" id="loadingBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 3 — ERROR
+  ============================================================ -->
+  <div id="errorPage" class="page hidden">
+    <div class="error-content">
+      <div class="error-illustration">🌧</div>
+      <h2 class="error-title">City Not Found</h2>
+      <p class="error-msg">
+        We couldn't find weather data for that city. Please check the spelling
+        and try again, or pick from the quick suggestions below.
+      </p>
+      <div class="error-suggestions">
+        <button class="city-pill" onclick="quickSearch('London')">🇬🇧 London</button>
+        <button class="city-pill" onclick="quickSearch('Tokyo')">🇯🇵 Tokyo</button>
+        <button class="city-pill" onclick="quickSearch('Dubai')">🇦🇪 Dubai</button>
+        <button class="city-pill" onclick="quickSearch('Lahore')">🇵🇰 Lahore</button>
+      </div>
+      <button class="back-home-btn" onclick="goBack()">← Back to Search</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 4 — WEATHER RESULT
+  ============================================================ -->
+  <div id="resultPage" class="page hidden">
+
+    <!-- Result Top Bar -->
+    <div class="result-navbar">
+      <button class="result-back-btn" onclick="goBack()">← Back</button>
+      <div class="result-nav-logo">
+        <span class="nav-logo-text">Sky<span class="accent">Cast</span></span>
+      </div>
+      <div class="result-nav-actions">
+        <button class="rn-btn" id="refreshBtn">↻ Refresh</button>
+        <button class="rn-btn highlight" id="shareTopBtn">📤 Share</button>
+      </div>
+    </div>
+
+    <!-- HERO WEATHER CARD -->
+    <div class="weather-hero-card">
+      <div class="whc-left">
+        <div class="whc-location-row">
+          <h2 class="whc-city" id="cityName"></h2>
+          <span class="whc-country" id="countryBadge"></span>
+          <span class="whc-live-dot"></span>
+          <span class="whc-live-txt">Live</span>
+        </div>
+        <p class="whc-datetime" id="dateTime"></p>
+
+        <div class="whc-temp-row">
+          <div class="whc-temp" id="temp"></div>
+          <div class="whc-unit-toggle">
+            <button class="ut-btn active" id="btnC" onclick="setUnit('C')">°C</button>
+            <button class="ut-btn" id="btnF" onclick="setUnit('F')">°F</button>
+          </div>
+        </div>
+
+        <p class="whc-desc" id="description"></p>
+        <p class="whc-feels" id="feelsLike"></p>
+
+        <div class="whc-mini-stats">
+          <div class="mini-stat">
+            <span class="mini-icon">🌅</span>
+            <span class="mini-label">Sunrise</span>
+            <span class="mini-val" id="sunrise">—</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-icon">🌇</span>
+            <span class="mini-label">Sunset</span>
+            <span class="mini-val" id="sunset">—</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-icon">🌊</span>
+            <span class="mini-label">Sea Level</span>
+            <span class="mini-val" id="seaLevel">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="whc-right">
+        <img class="whc-icon" id="weatherIcon" src="" alt="weather icon" />
+        <div class="whc-condition-badge" id="conditionBadge"></div>
+      </div>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="section-label">📊 Current Conditions</div>
+    <div class="stats-grid">
+      <div class="stat-tile">
+        <div class="st-icon">💧</div>
+        <div class="st-label">Humidity</div>
+        <div class="st-value" id="humidity">—</div>
+        <div class="st-bar-wrap"><div class="st-bar" id="humidityBar"></div></div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">💨</div>
+        <div class="st-label">Wind Speed</div>
+        <div class="st-value" id="windSpeed">—</div>
+        <div class="st-sub" id="windDir">—</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">👁</div>
+        <div class="st-label">Visibility</div>
+        <div class="st-value" id="visibility">—</div>
+        <div class="st-sub">kilometres</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">🌡</div>
+        <div class="st-label">Pressure</div>
+        <div class="st-value" id="pressure">—</div>
+        <div class="st-sub">hectopascals</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">🌬</div>
+        <div class="st-label">Wind Gust</div>
+        <div class="st-value" id="windGust">—</div>
+        <div class="st-sub">m/s</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">🌫</div>
+        <div class="st-label">Cloud Cover</div>
+        <div class="st-value" id="cloudCover">—</div>
+        <div class="st-bar-wrap"><div class="st-bar alt" id="cloudBar"></div></div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">🔼</div>
+        <div class="st-label">Temp Max</div>
+        <div class="st-value" id="tempMax">—</div>
+        <div class="st-sub">today's high</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-icon">🔽</div>
+        <div class="st-label">Temp Min</div>
+        <div class="st-value" id="tempMin">—</div>
+        <div class="st-sub">today's low</div>
+      </div>
+    </div>
+
+    <!-- UV INDEX CARD -->
+    <div class="section-label">☀️ UV Index</div>
+    <div class="uv-full-card">
+      <div class="uv-header-row">
+        <div class="uv-left">
+          <div class="uv-number" id="uvNumber">—</div>
+          <div class="uv-label-text" id="uvLabelText">—</div>
+        </div>
+        <div class="uv-advice" id="uvAdvice">—</div>
+      </div>
+      <div class="uv-gradient-bar">
+        <div class="uv-needle" id="uvNeedle"></div>
+      </div>
+      <div class="uv-scale-labels">
+        <span>Low</span><span>Moderate</span><span>High</span><span>Very High</span><span>Extreme</span>
+      </div>
+    </div>
+
+    <!-- AIR QUALITY / EXTRA INFO CARD -->
+    <div class="section-label">🌐 Location Info</div>
+    <div class="location-info-card">
+      <div class="li-item">
+        <span class="li-icon">📍</span>
+        <span class="li-label">Coordinates</span>
+        <span class="li-val" id="coordsDisplay">—</span>
+      </div>
+      <div class="li-item">
+        <span class="li-icon">🕐</span>
+        <span class="li-label">Timezone</span>
+        <span class="li-val" id="timezoneDisplay">—</span>
+      </div>
+      <div class="li-item">
+        <span class="li-icon">📏</span>
+        <span class="li-label">Ground Level Pressure</span>
+        <span class="li-val" id="groundLevel">—</span>
+      </div>
+      <div class="li-item">
+        <span class="li-icon">💦</span>
+        <span class="li-label">Dew Point (est.)</span>
+        <span class="li-val" id="dewPoint">—</span>
+      </div>
+    </div>
+
+    <!-- 5-DAY FORECAST -->
+    <div class="section-label">📅 5-Day Forecast</div>
+    <div class="forecast-strip" id="forecastContainer"></div>
+
+    <!-- HOURLY FORECAST -->
+    <div class="section-label">🕐 Hourly Forecast (Next 24h)</div>
+    <div class="hourly-strip" id="hourlyContainer"></div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="section-label">⚡ Quick Actions</div>
+    <div class="actions-grid">
+      <button class="action-tile" id="saveFavBtn">
+        <span class="at-icon">⭐</span>
+        <span class="at-label">Save City</span>
+        <span class="at-desc">Add to favorites</span>
+      </button>
+      <button class="action-tile" id="mapBtn">
+        <span class="at-icon">🗺</span>
+        <span class="at-label">View on Map</span>
+        <span class="at-desc">Open Google Maps</span>
+      </button>
+      <button class="action-tile" id="shareBtn2">
+        <span class="at-icon">📤</span>
+        <span class="at-label">Share Weather</span>
+        <span class="at-desc">WhatsApp, Twitter...</span>
+      </button>
+      <button class="action-tile" id="copyDataBtn">
+        <span class="at-icon">📋</span>
+        <span class="at-label">Copy Data</span>
+        <span class="at-desc">Copy full summary</span>
+      </button>
+    </div>
+
+    <!-- SAVED FAVORITES (in result page) -->
+    <div class="section-label" id="favsResultLabel">⭐ Your Saved Cities</div>
+    <div class="favs-result-row" id="favsResultRow"></div>
+
+    <!-- FOOTER -->
+    <div class="result-footer">
+      <p>Data from <strong>OpenWeatherMap</strong> · Updated every 10 minutes</p>
+      <p>SkyCast Weather App · Built with ❤️</p>
+    </div>
+
+  </div><!-- end resultPage -->
+
+  <!-- ============================================================
+       SHARE MODAL
+  ============================================================ -->
+  <div class="modal-overlay hidden" id="shareModal">
+    <div class="share-modal-box">
+      <div class="smb-header">
+        <h3>Share Weather</h3>
+        <button class="smb-close" onclick="closeShareModal()">✕</button>
+      </div>
+      <p class="smb-preview" id="sharePreviewText"></p>
+      <div class="smb-options">
+        <div class="smb-option" onclick="shareVia('copy')">
+          <span class="smb-ico">📋</span>
+          <div>
+            <div class="smb-opt-title">Copy to Clipboard</div>
+            <div class="smb-opt-sub">Paste anywhere you like</div>
+          </div>
+        </div>
+        <div class="smb-option" onclick="shareVia('whatsapp')">
+          <span class="smb-ico">💬</span>
+          <div>
+            <div class="smb-opt-title">Share on WhatsApp</div>
+            <div class="smb-opt-sub">Send to a contact or group</div>
+          </div>
+        </div>
+        <div class="smb-option" onclick="shareVia('twitter')">
+          <span class="smb-ico">🐦</span>
+          <div>
+            <div class="smb-opt-title">Post on Twitter / X</div>
+            <div class="smb-opt-sub">Tweet the current weather</div>
+          </div>
+        </div>
+        <div class="smb-option" onclick="shareVia('telegram')">
+          <span class="smb-ico">✈️</span>
+          <div>
+            <div class="smb-opt-title">Send on Telegram</div>
+            <div class="smb-opt-sub">Share via Telegram app</div>
+          </div>
+        </div>
+        <div class="smb-option" onclick="shareVia('native')">
+          <span class="smb-ico">📲</span>
+          <div>
+            <div class="smb-opt-title">More Options</div>
+            <div class="smb-opt-sub">Use your device's share sheet</div>
+          </div>
+        </div>
+      </div>
+      <button class="smb-cancel" onclick="closeShareModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TOAST NOTIFICATION
+  ============================================================ -->
+  <div class="toast-box" id="toastBox"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
